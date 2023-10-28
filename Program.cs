@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<TodoDb>(opt => opt.UseInMemoryDatabase("TodoList"));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 var app = builder.Build();
+using HttpClient client = new();
 
 RouteGroupBuilder todoItems = app.MapGroup("/todoitems");
 
@@ -25,12 +27,14 @@ static async Task<IResult> GetCompleteTodos(TodoDb db) {
     return TypedResults.Ok(await db.Todos.Where(t => t.IsComplete).Select(x => new TodoItemDTO(x)).ToListAsync());
 }
 
-static async Task<IResult> GetTodo(int id, TodoDb db)
+static async Task<IResult> GetTodo(int cep, TodoDb db)
 {
-    return await db.Todos.FindAsync(id)
-        is Todo todo
-            ? TypedResults.Ok(new TodoItemDTO(todo))
-            : TypedResults.NotFound();
+    using HttpClient client = new();
+    if (cep.ToString().Length != 9){
+        Console.Error.WriteLine("O cep deve conter apenas 9 Digitos");
+    };
+    var response = await client.PostAsync( "Https://viacep.com.br/ws/491000000/json");
+    return TypedResults.Ok(response);
 }
 
 static async Task<IResult> CreateTodo(TodoItemDTO todoItemDTO, TodoDb db)
